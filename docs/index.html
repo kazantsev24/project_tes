@@ -172,9 +172,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>В качестве отсканированного текста возьмем книгу Михаила Булгаков <a href="https://www.bulgakov.ru/pdf/Master-i-Margarita.pdf">«Мастер и Маргарита»</a>, Москва 1984 г</p>
 <p><em>Текст печатается в последней прижизненной редакции (рукописи хранятся в рукописном отделе Государственной библиотеки СССР имени В. И. Ленина), а также с исправлениями и дополнениями, сделанными под диктовку писателя его женой, Е. С. Булгаковой.</em></p>
 <ol type="1">
-<li>Выделим 12 страниц из всей книги (с 9 по 20)</li>
-<li>Скачаем предобученную модель для русского языка</li>
-<li>С помощью пакета {tesseract} распознаем текст и сохраним его в файл mmrasp.txt</li>
+<li><p>Выделим 12 страниц из всей книги (с 9 по 20)</p></li>
+<li><p>Скачаем предобученную модель для русского языка</p></li>
+<li><p>С помощью пакета {tesseract} распознаем текст и сохраним его в файл mmrasp.txt</p></li>
+<li><p>Затем убрали перенос слов, строки с числами, строки, состоящие из двух символов, первый из которых т или Т (это номера страниц) с помощью пакета {tidyverse}, результат положили в файл mmrasp_clean.txt</p></li>
+<li></li>
 </ol>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>  my_files <span class="ot">&lt;-</span> <span class="fu">list.files</span>( <span class="at">pattern =</span> <span class="st">"pdf"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
