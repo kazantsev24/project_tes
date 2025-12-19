@@ -9,6 +9,12 @@ library(tesseractgt)
 library(magick)
 library(tidyverse)
 library(stringr)
+library(ellmer)
+library(ollamar)
+library(xml2)
+library(diffobj)
+library(dplyr)
+library(ggplot2)
 ```
 
 В качестве отсканированного текста возьмем книгу Михаила Булгаков [«Мастер и Маргарита»](https://www.bulgakov.ru/pdf/Master-i-Margarita.pdf), Москва 1984 г
@@ -20,32 +26,118 @@ library(stringr)
 2. Скачаем предобученную модель для русского языка
 3. С помощью пакета {tesseract} распознаем текст и сохраним его в файл mmrasp.txt
 
-4. Затем убрали перенос слов, строки с числами, строки, состоящие из двух символов, первый из которых т или Т (это номера страниц) с помощью пакета {tidyverse}, результат положили в файл mmrasp_clean.txt
+4. Затем уберём (1) перенос слов, (2) строки с числами, (3) строки, состоящие из двух символов, первый из которых т или Т (это номера страниц) с помощью пакета {tidyverse}, результат положим в файл mmrasp_clean.txt
 
-5.
+5. Разметим текст согласно схеме TEI с помощью LLM, результат сохраним в test.xlm
 
 ```{r}
+
   my_files <- list.files( pattern = "pdf", full.names = TRUE)
   
   mf <- my_files
-  #pdf_subset(input = mf,
-  #          output = "./mm921.pdf",
-   #         pages = 9:20)
+  #1
+  pdf_subset(input = mf,
+            output = "./mm921.pdf",
+            pages = 9:20)
+  #2
   #tesseract_download("rus")
   #tesseract_info()$available
+  #3
   text3 <- pdf_ocr_text("./mm921.pdf", 
                         language = "rus")
+  #4.1
   writeLines(text3, con = "./mmrasp.txt")
   text_clean <- text3 %>%
   paste(collapse = "\n") %>%
   str_replace_all("-\\s*\\n\\s*", "") %>%
   str_split("\n") %>%
   unlist() %>%
+  #4.2
   discard(~ str_detect(.x, "^\\d+$")) %>%
+  #4.3
   discard(~ str_detect(.x, "^[Тт].$")) %>%
   str_trim() %>%
   discard(~ .x == "")
   writeLines(text_clean, con = "./mmrasp_clean.txt")
+#5
+Sys.setenv(OPENROUTER_API_KEY = "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")
+system_prompt <- "
+You are an expert TEI encoder specializing in Russian literary texts.
+
+CRITICAL RULES:
+1. Preserve the original text EXACTLY — no spelling corrections, no normalization
+2. Maintain original punctuation, capitalization, and line breaks
+3. Do not modernize language
+4. Output ONLY valid TEI XML
+
+TAGGING GUIDELINES:
+- Wrap every paragraph in <p>
+- Tag personal names with <persName>
+- Tag dates and temporal expressions with <date>
+- Tag chapter titles with <head>
+- Tag geographic references with <place>
+  * Cities: <place type='city'>Москва</place>
+  * Streets and urban locations: <place type='street'>Садовая</place>
+  * Parks and squares: <place type='park'>Патриаршие пруды</place>
+  * Regions: <place type='region'>Сибирь</place>
+  * Use type='fictional' for imaginary places
+
+RETURN FORMAT:
+Return only the text with added TEI tags, no additional commentary.
+Do not add explanations, comments, or metadata.
+"
+input_text <- paste(text_clean, collapse = "\n")
+
+user_prompt <- input_text
+
+chat <- chat_openrouter(
+  system_prompt = system_prompt,
+  api_key = Sys.getenv("OPENROUTER_API_KEY"),
+  model = "openai/gpt-oss-20b:free", 
+  echo = FALSE
+)
+
+result <- chat$chat(user_prompt)
+result <- paste("<text>\n", result, "\n</text>")
+write_lines(result, file = "test.xml")
 
 ```
+6. Получился такой текст
+```{r, echo=FALSE}
+marked_text <- read_lines("test.xml")
+marked_text
+```
+7. Выведем статистику по нашему xml-документу:
 
+```{r,echo=FALSE}
+xml_doc <- read_xml("test.xml")
+paragraphs <- xml_find_all(xml_doc, ".//p")
+cat("Количество абзацев:", length(paragraphs), "\n")
+names <- xml_find_all(xml_doc, ".//persName")
+cat("Количество упоминаний персонажей:", length(names), "\n")
+cat("Список персонажей:", xml_text(names), "\n")
+places <- xml_find_all(xml_doc, ".//place")
+cat("Количество упоминаний мест:", length(places), "\n")
+```
+8. А теперь выводим график частоты упоминания персонажей
+
+```{r, echo=FALSE}
+
+doc <- read_xml("test.xml") 
+
+persons <- xml_find_all(doc, ".//persName") %>%
+  xml_text()
+
+person_counts <- table(persons) %>% as.data.frame()
+colnames(person_counts) <- c("Person", "Count")
+
+ggplot(person_counts, aes(x = reorder(Person, Count), y = Count)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Количество упоминаний персонажей",
+       x = "Персонаж",
+       y = "Количество упоминаний") +
+  theme_minimal()
+
+
+```
