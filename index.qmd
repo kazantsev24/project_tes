@@ -1,5 +1,5 @@
 ---
-title: "Распознавание и разметка части книги Э.Щредингера «Что такое жизнь с точки зрения физики?» "
+title: "Распознавание и разметка части книги Михаила Булгакова «Мастер и Маргарита»"
 ---
 ```{r setup, include=FALSE}
 library(qpdf)
@@ -7,28 +7,41 @@ library(tesseract)
 library(pdftools)
 library(tesseractgt)
 library(magick)
+library(tidyverse)
+library(stringr)
 ```
 
-В качестве отсканированного текста возьмем книгу Эрвина Щредингера [«Что такое жизнь с точки зрения физики?»](http://dnapunctuation.org/~poptsova/course2012/Shredinger%20E.%20_Chto%20takoe%20zhizn'%20s%20tochki%20zrenija%20fizika.pdf), Издательство «РИМИС», 2009
+В качестве отсканированного текста возьмем книгу Михаила Булгаков [«Мастер и Маргарита»](https://www.bulgakov.ru/pdf/Master-i-Margarita.pdf), Москва 1984 г
 
-Текст и рисунки восстановлены по книге Э. Щредингера
-«Что такое жизнь с точки зрения физики?», вышедшей
-в 1947 г. в Москве в государственном издательстве
-Иностранной литературы.
+*Текст печатается в последней прижизненной редакции (рукописи хранятся в рукописном отделе Государственной библиотеки СССР имени В. И. Ленина), а также с исправлениями и дополнениями, сделанными под диктовку писателя его женой,
+Е. С. Булгаковой.*
 
-1. Выделим 12 страниц из всей книги (с 20 по 31)
-2. Скачаем предобученную модель для языков rus+eng+fra+lat, текст у нас на русском, но есть сноски на английском и французском и цитата на латыни
-3. С помощью пакета {tesseract} распознаем текст и сохраним его в файл shredrasp.txt
+1. Выделим 12 страниц из всей книги (с 9 по 20)
+2. Скачаем предобученную модель для русского языка
+3. С помощью пакета {tesseract} распознаем текст и сохраним его в файл mmrasp.txt
 
 ```{r}
-my_files <- list.files( pattern = "pdf", full.names = TRUE)
-mf <- my_files[1]
-st <- pdf_subset(input = mf,
-           output = "./shred2132.pdf",
-           pages = 21:32)
-#tesseract_info()$available
-text3 <- pdf_ocr_text("./shred2132.pdf", 
-                      language = "rus+eng+fra+lat")
-writeLines(text3, con = "./sredrasp.txt")
-cat(text3)
+  my_files <- list.files( pattern = "pdf", full.names = TRUE)
+  
+  mf <- my_files
+  #pdf_subset(input = mf,
+  #          output = "./mm921.pdf",
+   #         pages = 9:20)
+  #tesseract_download("rus")
+  #tesseract_info()$available
+  text3 <- pdf_ocr_text("./mm921.pdf", 
+                        language = "rus")
+  writeLines(text3, con = "./mmrasp.txt")
+  text_clean <- text3 %>%
+  paste(collapse = "\n") %>%
+  str_replace_all("-\\s*\\n\\s*", "") %>%
+  str_split("\n") %>%
+  unlist() %>%
+  discard(~ str_detect(.x, "^\\d+$")) %>%
+  discard(~ str_detect(.x, "^[Тт].$")) %>%
+  str_trim() %>%
+  discard(~ .x == "")
+  writeLines(text_clean, con = "./mmrasp_clean.txt")
+
 ```
+
