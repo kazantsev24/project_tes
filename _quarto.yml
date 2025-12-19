@@ -7,8 +7,9 @@ website:
   navbar:
     left:
       - href: index.qmd
+        text: Проект
+      - href: about.qmd
         text: Размеченный текст
-      - about.qmd
 
 format:
   html:
