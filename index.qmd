@@ -1,11 +1,34 @@
 ---
-title: "my_final_project"
+title: "Распознавание и разметка части книги Э.Щредингера «Что такое жизнь с точки зрения физики?» "
 ---
+```{r setup, include=FALSE}
+library(qpdf)
+library(tesseract)
+library(pdftools)
+library(tesseractgt)
+library(magick)
+```
 
-This is a Quarto website.
+В качестве отсканированного текста возьмем книгу Эрвина Щредингера [«Что такое жизнь с точки зрения физики?»](http://dnapunctuation.org/~poptsova/course2012/Shredinger%20E.%20_Chto%20takoe%20zhizn'%20s%20tochki%20zrenija%20fizika.pdf), Издательство «РИМИС», 2009
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+Текст и рисунки восстановлены по книге Э. Щредингера
+«Что такое жизнь с точки зрения физики?», вышедшей
+в 1947 г. в Москве в государственном издательстве
+Иностранной литературы.
+
+1. Выделим 12 страниц из всей книги (с 20 по 31)
+2. Скачаем предобученную модель для языков rus+eng+fra+lat, текст у нас на русском, но есть сноски на английском и французском и цитата на латыни
+3. С помощью пакета {tesseract} распознаем текст и сохраним его в файл shredrasp.txt
 
 ```{r}
-1 + 1
+my_files <- list.files( pattern = "pdf", full.names = TRUE)
+mf <- my_files[1]
+st <- pdf_subset(input = mf,
+           output = "./shred2132.pdf",
+           pages = 21:32)
+#tesseract_info()$available
+text3 <- pdf_ocr_text("./shred2132.pdf", 
+                      language = "rus+eng+fra+lat")
+writeLines(text3, con = "./sredrasp.txt")
+cat(text3)
 ```

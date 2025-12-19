@@ -1,8 +1,9 @@
 project:
   type: website
+  output-dir: docs
 
 website:
-  title: "my_final_project"
+  title: "Мой итоговый проект (Вариант 2) "
   navbar:
     left:
       - href: index.qmd
@@ -12,7 +13,7 @@ website:
 format:
   html:
     theme:
-      - cosmo
+      - minty
       - brand
     css: styles.css
     toc: true
